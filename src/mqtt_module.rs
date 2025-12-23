@@ -176,12 +176,17 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
         let identifiers = [identifier_str];
         let config = ha::light_to_discovery(entity, &discovery_ctx, &identifiers);
 
-        if let Ok(json_len) = serde_json_core::to_slice(&config, &mut self.buf) {
-            outbox.publish(
-                discovery_ctx.config_topic.as_str(),
-                &self.buf[..json_len],
-                QoS::AtLeastOnce,
-            );
+        match serde_json_core::to_slice(&config, &mut self.buf) {
+            Ok(json_len) => {
+                outbox.publish(
+                    discovery_ctx.config_topic.as_str(),
+                    &self.buf[..json_len],
+                    QoS::AtLeastOnce,
+                );
+            }
+            Err(_e) => {
+                // Buffer too small or serialization error
+            }
         }
     }
 
@@ -212,8 +217,11 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
             let topic: String<MAX_TOPIC_LEN> =
                 ha::state_topic(entry.entity.device.id, entry.entity.id);
 
-            if let Ok(json_len) = serde_json_core::to_slice(&ha_state, &mut self.buf) {
-                outbox.publish(topic.as_str(), &self.buf[..json_len], QoS::AtMostOnce);
+            match serde_json_core::to_slice(&ha_state, &mut self.buf) {
+                Ok(json_len) => {
+                    outbox.publish(topic.as_str(), &self.buf[..json_len], QoS::AtMostOnce);
+                }
+                Err(_e) => {}
             }
         }
 
@@ -272,9 +280,7 @@ impl<const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usize> M
     }
 
     fn on_tick(&mut self, outbox: &mut dyn PublishOutbox) -> Duration {
-        self.needs_publish = false;
         self.announce_all(outbox);
-        self.publish_states(outbox);
         self.tick_interval
     }
 
@@ -285,6 +291,11 @@ impl<const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usize> M
 
     fn needs_immediate_publish(&self) -> bool {
         self.needs_publish
+    }
+
+    fn on_publish(&mut self, outbox: &mut dyn PublishOutbox) {
+        self.needs_publish = false;
+        self.publish_states(outbox);
     }
 }
 

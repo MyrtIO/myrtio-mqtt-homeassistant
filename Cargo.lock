@@ -326,9 +326,9 @@ checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
 
 [[package]]
 name = "myrtio-mqtt"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9013c6955c9cf7fa02ea7a1e8bf9a059e054e24a0f9acec9c5703c1ed7af3b7"
+checksum = "b3828735611d111ec2f5e325a6b267e6b4f0478c8d6142a193a54c893de2c7ac"
 dependencies = [
  "embassy-futures",
  "embassy-net",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "myrtio-mqtt-homeassistant"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "const-builder",
  "embassy-futures",
