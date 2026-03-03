@@ -38,6 +38,15 @@ pub fn command_topic<const N: usize>(device_id: &str, entity_id: &str) -> String
     topic
 }
 
+/// Generate a device-level availability topic.
+///
+/// Format: `{device_id}/availability`
+pub fn availability_topic<const N: usize>(device_id: &str) -> String<N> {
+    let mut topic = String::new();
+    let _ = write!(topic, "{}/availability", device_id);
+    topic
+}
+
 /// Generate a unique ID for an entity
 ///
 /// Format: `{device_id}_{entity_id}`

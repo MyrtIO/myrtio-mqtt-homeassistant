@@ -29,6 +29,7 @@ pub struct LightDiscoveryContext<'a, const N: usize> {
     pub unique_id: String<N>,
     pub state_topic: String<N>,
     pub command_topic: String<N>,
+    pub availability_topic: String<N>,
     pub config_topic: String<N>,
     pub color_modes: Vec<&'a str, 4>,
     pub identifier: String<N>,
@@ -40,6 +41,7 @@ impl<'a, const N: usize> LightDiscoveryContext<'a, N> {
         let unique_id = topic::unique_id(entity.device.id, entity.id);
         let state_topic = topic::state_topic(entity.device.id, entity.id);
         let command_topic = topic::command_topic(entity.device.id, entity.id);
+        let availability_topic = topic::availability_topic(entity.device.id);
         let config_topic = topic::config_topic("light", entity.device.id, entity.id);
 
         let mut color_modes: Vec<&str, 4> = Vec::new();
@@ -54,6 +56,7 @@ impl<'a, const N: usize> LightDiscoveryContext<'a, N> {
             unique_id,
             state_topic,
             command_topic,
+            availability_topic,
             config_topic,
             color_modes,
             identifier,
@@ -76,6 +79,9 @@ where
         schema: "json",
         state_topic: ctx.state_topic.as_str(),
         command_topic: ctx.command_topic.as_str(),
+        availability_topic: Some(ctx.availability_topic.as_str()),
+        payload_available: Some("online"),
+        payload_not_available: Some("offline"),
         device: HaDeviceInfo {
             name: entity.device.name,
             identifiers: identifier_slice,
@@ -100,6 +106,7 @@ pub struct NumberDiscoveryContext<const N: usize> {
     pub unique_id: String<N>,
     pub state_topic: String<N>,
     pub command_topic: String<N>,
+    pub availability_topic: String<N>,
     pub config_topic: String<N>,
     pub identifier: String<N>,
 }
@@ -110,6 +117,7 @@ impl<const N: usize> NumberDiscoveryContext<N> {
         let unique_id = topic::unique_id(entity.device.id, entity.id);
         let state_topic = topic::state_topic(entity.device.id, entity.id);
         let command_topic = topic::command_topic(entity.device.id, entity.id);
+        let availability_topic = topic::availability_topic(entity.device.id);
         let config_topic = topic::config_topic("number", entity.device.id, entity.id);
 
         let mut identifier: String<N> = String::new();
@@ -119,6 +127,7 @@ impl<const N: usize> NumberDiscoveryContext<N> {
             unique_id,
             state_topic,
             command_topic,
+            availability_topic,
             config_topic,
             identifier,
         }
@@ -139,6 +148,9 @@ where
         unique_id: ctx.unique_id.as_str(),
         state_topic: ctx.state_topic.as_str(),
         command_topic: ctx.command_topic.as_str(),
+        availability_topic: Some(ctx.availability_topic.as_str()),
+        payload_available: Some("online"),
+        payload_not_available: Some("offline"),
         device: HaDeviceInfo {
             name: entity.device.name,
             identifiers: identifier_slice,

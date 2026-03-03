@@ -36,6 +36,15 @@ pub struct HaLightDiscovery<'a> {
     pub state_topic: &'a str,
     /// Topic for commands
     pub command_topic: &'a str,
+    /// Topic for entity availability updates
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub availability_topic: Option<&'a str>,
+    /// Payload that indicates the device is available
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_available: Option<&'a str>,
+    /// Payload that indicates the device is unavailable
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_not_available: Option<&'a str>,
     /// Device information
     pub device: HaDeviceInfo<'a>,
     /// MDI icon (optional)
@@ -78,6 +87,15 @@ pub struct HaNumberDiscovery<'a> {
     pub state_topic: &'a str,
     /// Topic for commands
     pub command_topic: &'a str,
+    /// Topic for entity availability updates
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub availability_topic: Option<&'a str>,
+    /// Payload that indicates the device is available
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_available: Option<&'a str>,
+    /// Payload that indicates the device is unavailable
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payload_not_available: Option<&'a str>,
     /// Device information
     pub device: HaDeviceInfo<'a>,
     /// MDI icon (optional)

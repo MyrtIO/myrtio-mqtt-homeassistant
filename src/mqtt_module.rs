@@ -25,7 +25,7 @@ use core::fmt::Write;
 use embassy_time::Duration;
 use heapless::{String, Vec};
 use myrtio_mqtt::{
-    QoS,
+    LastWill, QoS,
     runtime::{MqttModule, Publish, PublishOutbox, TopicCollector},
 };
 
@@ -38,6 +38,8 @@ use crate::{
 
 /// Maximum length for a topic string
 const MAX_TOPIC_LEN: usize = 128;
+const AVAILABILITY_ONLINE: &[u8] = b"online";
+const AVAILABILITY_OFFLINE: &[u8] = b"offline";
 
 /// Internal storage for light registration with pre-computed command topic
 struct LightEntry<'a> {
@@ -87,6 +89,7 @@ pub struct HaModule<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const
     lights: Vec<LightEntry<'a>, MAX_LIGHTS>,
     numbers: Vec<NumberEntry<'a>, MAX_NUMBERS>,
     buf: [u8; BUF_SIZE],
+    availability_topic: String<MAX_TOPIC_LEN>,
     tick_interval: Duration,
     needs_publish: bool,
 }
@@ -104,6 +107,7 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
             lights: Vec::new(),
             numbers: Vec::new(),
             buf: [0u8; BUF_SIZE],
+            availability_topic: String::new(),
             tick_interval,
             needs_publish: false,
         }
@@ -119,6 +123,7 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
     ///
     /// `Ok(())` if successful, `Err(Error::MaxEntitiesReached)` if the light limit is reached.
     pub fn add_light(&mut self, reg: LightRegistration<'a>) -> Result<(), Error<()>> {
+        self.ensure_availability_topic(reg.entity.device.id);
         let command_topic = ha::command_topic(reg.entity.device.id, reg.entity.id);
         self.lights
             .push(LightEntry {
@@ -140,6 +145,7 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
     ///
     /// `Ok(())` if successful, `Err(Error::MaxEntitiesReached)` if the number limit is reached.
     pub fn add_number(&mut self, reg: NumberRegistration<'a>) -> Result<(), Error<()>> {
+        self.ensure_availability_topic(reg.entity.device.id);
         let command_topic = ha::command_topic(reg.entity.device.id, reg.entity.id);
         self.numbers
             .push(NumberEntry {
@@ -236,6 +242,23 @@ impl<'a, const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usiz
             outbox.publish(topic.as_str(), &self.buf[..len], QoS::AtMostOnce);
         }
     }
+
+    fn ensure_availability_topic(&mut self, device_id: &str) {
+        if self.availability_topic.is_empty() {
+            self.availability_topic = ha::availability_topic(device_id);
+        }
+    }
+
+    fn publish_availability_online(&self, outbox: &mut dyn PublishOutbox) {
+        if !self.availability_topic.is_empty() {
+            outbox.publish_with_retain(
+                self.availability_topic.as_str(),
+                AVAILABILITY_ONLINE,
+                QoS::AtLeastOnce,
+                true,
+            );
+        }
+    }
 }
 
 impl<const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usize> MqttModule
@@ -281,12 +304,28 @@ impl<const MAX_LIGHTS: usize, const MAX_NUMBERS: usize, const BUF_SIZE: usize> M
 
     fn on_tick(&mut self, outbox: &mut dyn PublishOutbox) -> Duration {
         self.announce_all(outbox);
+        self.publish_availability_online(outbox);
+        self.publish_states(outbox);
         self.tick_interval
     }
 
     fn on_start(&mut self, outbox: &mut dyn PublishOutbox) {
         self.announce_all(outbox);
+        self.publish_availability_online(outbox);
         self.publish_states(outbox);
+    }
+
+    fn last_will(&self) -> Option<LastWill<'_>> {
+        if self.availability_topic.is_empty() {
+            return None;
+        }
+
+        Some(LastWill {
+            topic: self.availability_topic.as_str(),
+            payload: AVAILABILITY_OFFLINE,
+            qos: QoS::AtLeastOnce,
+            retain: true,
+        })
     }
 
     fn needs_immediate_publish(&self) -> bool {

@@ -16,4 +16,4 @@ pub use mapping::{
     light_to_discovery, number_to_discovery,
 };
 pub use state::HaLightState;
-pub use topic::{command_topic, config_topic, state_topic, unique_id};
+pub use topic::{availability_topic, command_topic, config_topic, state_topic, unique_id};
